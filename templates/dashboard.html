@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Flask Kluster API{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="dashboard-header">
+        <h1><i class="fas fa-tachometer-alt"></i> Panel de Control</h1>
+        <p>Sistema desplegado automáticamente en Google Kubernetes Engine</p>
+    </div>
+    
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-server"></i>
+            </div>
+            <div class="stat-content">
+                <h3>Estado del Cluster</h3>
+                <p class="stat-value">Activo</p>
+                <small>GKE Autopilot</small>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-rocket"></i>
+            </div>
+            <div class="stat-content">
+                <h3>Despliegue</h3>
+                <p class="stat-value">Automático</p>
+                <small>GitHub Actions</small>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-docker"></i>
+            </div>
+            <div class="stat-content">
+                <h3>Contenedor</h3>
+                <p class="stat-value">Running</p>
+                <small>Docker + K8s</small>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-users"></i>
+            </div>
+            <div class="stat-content">
+                <h3>Sesión Activa</h3>
+                <p class="stat-value">{{ session.username }}</p>
+                <small>Usuario conectado</small>
+            </div>
+        </div>
+    </div>
+    
+    <div class="dashboard-content">
+        <div class="content-card">
+            <h3><i class="fas fa-info-circle"></i> Información del Sistema</h3>
+            <div class="info-grid">
+                <div class="info-item">
+                    <strong>Proyecto:</strong> Flask Kluster API
+                </div>
+                <div class="info-item">
+                    <strong>Versión:</strong> 1.0.0
+                </div>
+                <div class="info-item">
+                    <strong>Framework:</strong> Flask 3.0.0
+                </div>
+                <div class="info-item">
+                    <strong>Plataforma:</strong> Google Cloud Platform
+                </div>
+                <div class="info-item">
+                    <strong>Clúster:</strong> flask-cluster (us-central1)
+                </div>
+                <div class="info-item">
+                    <strong>CI/CD:</strong> GitHub Actions
+                </div>
+            </div>
+        </div>
+        
+        <div class="content-card">
+            <h3><i class="fas fa-cogs"></i> Acciones Rápidas</h3>
+            <div class="actions-grid">
+                <a href="/api/info" class="action-btn" target="_blank">
+                    <i class="fas fa-info"></i>
+                    Ver API Info
+                </a>
+                <a href="/health" class="action-btn" target="_blank">
+                    <i class="fas fa-heartbeat"></i>
+                    Health Check
+                </a>
+                <a href="/api/users" class="action-btn" target="_blank">
+                    <i class="fas fa-users"></i>
+                    Lista Usuarios
+                </a>
+                <a href="https://github.com/ZokerG/flask-kluster-api" class="action-btn" target="_blank">
+                    <i class="fab fa-github"></i>
+                    Ver Repositorio
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="deployment-status">
+        <h3><i class="fas fa-rocket"></i> Estado del Último Despliegue</h3>
+        <div class="status-info">
+            <div class="status-item success">
+                <i class="fas fa-check-circle"></i>
+                <span>CI/CD Pipeline: Exitoso</span>
+            </div>
+            <div class="status-item success">
+                <i class="fas fa-check-circle"></i>
+                <span>Docker Build: Completado</span>
+            </div>
+            <div class="status-item success">
+                <i class="fas fa-check-circle"></i>
+                <span>Kubernetes Deploy: Activo</span>
+            </div>
+            <div class="status-item success">
+                <i class="fas fa-check-circle"></i>
+                <span>LoadBalancer: Configurado</span>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

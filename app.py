@@ -1,7 +1,8 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, render_template, redirect, url_for, session, flash
 import os
 import logging
 from datetime import datetime
+import secrets
 
 # Configurar logging
 logging.basicConfig(level=logging.INFO)
@@ -13,15 +14,68 @@ app = Flask(__name__)
 app.config['DEBUG'] = os.getenv('FLASK_DEBUG', 'False').lower() == 'true'
 app.config['HOST'] = os.getenv('FLASK_HOST', '0.0.0.0')
 app.config['PORT'] = int(os.getenv('FLASK_PORT', 5000))
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', secrets.token_hex(16))
+
+# Credenciales de demo (en producción usar hash y base de datos)
+DEMO_USERS = {
+    'admin': 'kluster123',
+    'demo': 'demo123',
+    'user': 'password'
+}
 
 @app.route('/')
 def home():
-    """Endpoint principal de salud"""
+    """Endpoint principal - redirige al login o dashboard"""
+    if session.get('logged_in'):
+        return redirect(url_for('dashboard'))
+    return redirect(url_for('login'))
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    """Página de login"""
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        
+        if username in DEMO_USERS and DEMO_USERS[username] == password:
+            session['logged_in'] = True
+            session['username'] = username
+            flash(f'¡Bienvenido {username}! Has iniciado sesión correctamente.', 'success')
+            logger.info(f"Usuario {username} ha iniciado sesión exitosamente")
+            return redirect(url_for('dashboard'))
+        else:
+            flash('Credenciales incorrectas. Verifica tu usuario y contraseña.', 'error')
+            logger.warning(f"Intento de login fallido para usuario: {username}")
+    
+    return render_template('login.html')
+
+@app.route('/dashboard')
+def dashboard():
+    """Dashboard principal - requiere login"""
+    if not session.get('logged_in'):
+        flash('Debes iniciar sesión para acceder al dashboard.', 'error')
+        return redirect(url_for('login'))
+    
+    return render_template('dashboard.html')
+
+@app.route('/logout')
+def logout():
+    """Cerrar sesión"""
+    username = session.get('username', 'Usuario')
+    session.clear()
+    flash(f'Hasta luego {username}. Has cerrado sesión correctamente.', 'success')
+    logger.info(f"Usuario {username} ha cerrado sesión")
+    return redirect(url_for('login'))
+
+@app.route('/api/status')
+def api_status():
+    """Endpoint de estado de la API (JSON)"""
     return jsonify({
         'message': 'Flask API está funcionando correctamente',
         'status': 'healthy',
         'timestamp': datetime.now().isoformat(),
-        'version': '1.0.0'
+        'version': '1.0.0',
+        'authenticated_user': session.get('username') if session.get('logged_in') else None
     })
 
 @app.route('/health')
@@ -40,7 +94,11 @@ def api_info():
         'version': '1.0.0',
         'description': 'API Flask preparada para despliegue en clúster',
         'endpoints': [
-            {'path': '/', 'method': 'GET', 'description': 'Página principal'},
+            {'path': '/', 'method': 'GET', 'description': 'Página principal (login/dashboard)'},
+            {'path': '/login', 'method': 'GET,POST', 'description': 'Página de login'},
+            {'path': '/dashboard', 'method': 'GET', 'description': 'Dashboard (requiere login)'},
+            {'path': '/logout', 'method': 'GET', 'description': 'Cerrar sesión'},
+            {'path': '/api/status', 'method': 'GET', 'description': 'Estado de la API'},
             {'path': '/health', 'method': 'GET', 'description': 'Health check'},
             {'path': '/api/info', 'method': 'GET', 'description': 'Información de la API'},
             {'path': '/api/users', 'method': 'GET', 'description': 'Lista de usuarios'},
