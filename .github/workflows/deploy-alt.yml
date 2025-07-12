@@ -1,10 +1,9 @@
-name: Deploy to GKE
+name: Deploy to GKE (Alternative)
 
 on:
   push:
     branches: [ main, master ]
-  pull_request:
-    branches: [ main, master ]
+  workflow_dispatch:
 
 env:
   PROJECT_ID: second-kite-460800-d3
@@ -35,14 +34,8 @@ jobs:
 
     - name: 'Set up Cloud SDK'
       uses: 'google-github-actions/setup-gcloud@v2'
-
-    - name: 'Install gke-gcloud-auth-plugin'
-      run: |
-        gcloud components install gke-gcloud-auth-plugin
-        export USE_GKE_GCLOUD_AUTH_PLUGIN=True
-
-    - name: 'Use gcloud CLI'
-      run: 'gcloud info'
+      with:
+        install_components: 'gke-gcloud-auth-plugin'
 
     - name: 'Configure Docker to use gcloud as a credential helper'
       run: |-
@@ -56,22 +49,21 @@ jobs:
       run: |-
         docker push "gcr.io/$PROJECT_ID/$IMAGE:$GITHUB_SHA"
 
-    - name: Get GKE credentials
-      run: |-
-        export USE_GKE_GCLOUD_AUTH_PLUGIN=True
-        gcloud container clusters get-credentials "$GKE_CLUSTER" --zone "$GKE_ZONE"
+    - name: 'Get GKE Credentials'
+      uses: 'google-github-actions/get-gke-credentials@v2'
+      with:
+        cluster_name: ${{ env.GKE_CLUSTER }}
+        location: ${{ env.GKE_ZONE }}
 
     - name: Deploy to GKE
       run: |-
-        export USE_GKE_GCLOUD_AUTH_PLUGIN=True
-        
         # Replace image in deployment
         sed -i "s|gcr.io/second-kite-460800-d3/flask-kluster-api:latest|gcr.io/$PROJECT_ID/$IMAGE:$GITHUB_SHA|g" k8s/deployment-autopilot.yaml
         
-        # Apply configurations with validation disabled for compatibility
-        kubectl apply -f k8s/configmap.yaml --validate=false
-        kubectl apply -f k8s/deployment-autopilot.yaml --validate=false
-        kubectl apply -f k8s/loadbalancer.yaml --validate=false
+        # Apply configurations
+        kubectl apply -f k8s/configmap.yaml
+        kubectl apply -f k8s/deployment-autopilot.yaml
+        kubectl apply -f k8s/loadbalancer.yaml
         
         # Verify deployment
         kubectl rollout status deployment/$DEPLOYMENT_NAME
