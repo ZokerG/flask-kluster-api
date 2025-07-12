@@ -1,0 +1,101 @@
+name: CI - Tests and Build
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.11]
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest requests
+    
+    - name: Run Flask app in background
+      run: |
+        python app.py &
+        sleep 5
+    
+    - name: Test health endpoint
+      run: |
+        python -c "
+        import requests
+        import sys
+        try:
+            response = requests.get('http://localhost:5000/health', timeout=10)
+            assert response.status_code == 200
+            print('✅ Health check passed')
+        except Exception as e:
+            print(f'❌ Health check failed: {e}')
+            sys.exit(1)
+        "
+    
+    - name: Test API endpoints
+      run: |
+        python -c "
+        import requests
+        import sys
+        
+        # Test main endpoint
+        response = requests.get('http://localhost:5000/')
+        assert response.status_code == 200
+        assert 'Flask API está funcionando correctamente' in response.json()['message']
+        
+        # Test API info
+        response = requests.get('http://localhost:5000/api/info')
+        assert response.status_code == 200
+        assert response.json()['name'] == 'Flask Kluster API'
+        
+        # Test users endpoint
+        response = requests.get('http://localhost:5000/api/users')
+        assert response.status_code == 200
+        
+        # Test create user
+        user_data = {'name': 'Test User', 'email': 'test@example.com'}
+        response = requests.post('http://localhost:5000/api/users', json=user_data)
+        assert response.status_code == 201
+        
+        print('✅ All API tests passed')
+        "
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Build Docker image
+      run: |
+        docker build -t flask-kluster-api:test .
+        
+    - name: Test Docker image
+      run: |
+        # Run container in background
+        docker run -d -p 5000:5000 --name test-container flask-kluster-api:test
+        sleep 10
+        
+        # Test health endpoint
+        curl -f http://localhost:5000/health || exit 1
+        
+        # Cleanup
+        docker stop test-container
+        docker rm test-container
+        
+        echo "✅ Docker build and test successful"

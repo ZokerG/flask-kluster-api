@@ -1,0 +1,26 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: flask-api-ingress
+  annotations:
+    kubernetes.io/ingress.class: "gce"
+    kubernetes.io/ingress.global-static-ip-name: "flask-api-ip"  # Opcional: IP estática
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    # Para HTTPS automático con Let's Encrypt
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  tls:
+  - hosts:
+    - your-domain.com  # Cambiar por tu dominio
+    secretName: flask-api-tls
+  rules:
+  - host: your-domain.com  # Cambiar por tu dominio
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: flask-api-service
+            port:
+              number: 80
